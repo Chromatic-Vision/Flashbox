@@ -8,4 +8,4 @@ Linux/Mac:
   - Python `3.10.*+` and pygame `2.1.*+` should be fine ***(no guarantees)***
 
 Windows 8 or newer:
-  - Nothing, you just have to run .exe file in the zip of latest release.
+  - Nothing, you just have to run .exe file in the zip of the latest release.
