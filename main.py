@@ -1,8 +1,6 @@
 """
 
-https://github.com/Chromatic-Vision/Flashbox <<< Contribute!!
-
-Huge thanks to pygame and my friend to make this project possible.
+Huge thanks to pygame and my friends to make this project possible.
 
 """
 
@@ -12,8 +10,9 @@ import random
 import webbrowser
 import pygame
 import logger
+from enum import Enum
 
-VERSION = "v0.4c"
+VERSION = "v0.4d"
 
 size = (0, 0)
 
@@ -33,18 +32,23 @@ logger.log(f"Screen size: {size[0]}, {size[1]}")
 pygame.display.set_caption("Flashbox " + VERSION)
 pygame.display.set_icon(pygame.image.load("images/flashbox.ico"))
 
+class Language(Enum):
+    ENGLISH = 1
+    JAPANESE = 2
+
+# configs
 config_file = "config.json"
-number_font_size = 100
+number_font_size = 115
 
+render_countdown = True
+countdown_seconds = 3
+tournament_mode = False
+current_lang = Language.ENGLISH
+
+# system variables
 digits = 1
-amount = 7
-seconds = 1.55
-
-def random_with_custom_digits(n):
-    range_start = 10 ** (n - 1)
-    range_end = (10 ** n) - 1
-    return random.randint(range_start, range_end)
-
+amount = 6
+seconds = 3.55
 
 phase = 0
 displayed_amount = 0
@@ -55,10 +59,6 @@ answer_input = ""
 t = 0
 cs = 0
 
-# configs
-render_countdown = True
-countdown_seconds = 3
-
 def save_config(filename):
     with open(filename, 'w') as file:
 
@@ -68,7 +68,8 @@ def save_config(filename):
             "total_seconds": seconds,
             "countdown_seconds": countdown_seconds,
             "render_countdown": render_countdown,
-            "number_font_size": number_font_size
+            "number_font_size": number_font_size,
+            "tournament_mode": tournament_mode
         }
 
         json.dump(data, file)
@@ -81,6 +82,7 @@ def load_config(filename):
     global countdown_seconds
     global render_countdown
     global number_font_size
+    global tournament_mode
 
     if filename not in os.listdir('.'):
 
@@ -93,7 +95,8 @@ def load_config(filename):
                 "total_seconds": seconds,
                 "countdown_seconds": countdown_seconds,
                 "render_countdown": render_countdown,
-                "number_font_size": number_font_size
+                "number_font_size": number_font_size,
+                "tournament_mode": tournament_mode
             }, file)
             return
 
@@ -112,14 +115,17 @@ def load_config(filename):
         countdown_seconds = data["countdown_seconds"]
         render_countdown = data["render_countdown"]
         number_font_size = data["number_font_size"]
+        tournament_mode = data["tournament_mode"]
 
 
 logger.log(f"Loading config, filename: {config_file}")
 load_config(config_file)
+logger.log(f"Language set to {current_lang}")
 
 # fonts
 big_font = pygame.font.Font("fonts/abacus.ttf", number_font_size)
 normal_text_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 25)
+japanese_text_font = pygame.font.Font("fonts/noto-sans-jp-light.ttf", 25)
 
 
 def get_middle_x(text: str, font: pygame.font.Font):
@@ -131,9 +137,11 @@ def get_middle_y(text: str, font: pygame.font.Font):
 def render_big_text(text, x, y, color, center: bool):
     screen.blit(big_font.render(text, True, color), (get_middle_x(text, big_font) if center else x, get_middle_y(text, big_font) if center else y))
 
-
 def render_normal_text(text, x, y, color, center: bool):
     screen.blit(normal_text_font.render(text, True, color), (get_middle_x(text, normal_text_font) if center else x, get_middle_y(text, normal_text_font) if center else y))
+
+def render_japanese_text(text, x, y, color, center: bool):
+    screen.blit(japanese_text_font.render(text, True, color), (get_middle_x(text, japanese_text_font) if center else x, get_middle_y(text, japanese_text_font) if center else y))
 
 def draw_correct_circle(x, y, r):
     pygame.draw.circle(screen, (0, 255, 0), (x, y), r, 5)
@@ -153,6 +161,11 @@ def play_sound(filename):
     pygame.mixer.Sound.play(pygame.mixer.Sound(filename))
 
 
+def random_with_custom_digits(n):
+    range_start = 10 ** (n - 1)
+    range_end = (10 ** n) - 1
+    return random.randint(range_start, range_end)
+
 def refresh():
 
     global last_number
@@ -169,7 +182,60 @@ def refresh():
 
 # random variables
 pressdelay_decrease_seconds = 0
-mouse_hovering_help_box = False
+
+class Button:
+    def __init__(self, x, y, width, height, render_phase, button_text='Button', x_offset=0, y_offset=0):
+        self.x = x
+        self.y = y
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        self.width = width
+        self.height = height
+        self.render_phase = render_phase
+        self.button_text = button_text
+        self.clicked = False
+
+        self.fill_colors = {
+            'normal': (255, 255, 255),
+            'hover': (100, 100, 100),
+            'pressed': (100, 100, 100)
+        }
+
+        self.button_surface = pygame.Surface((self.width, self.height))
+        self.button_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def update_mouse(self):
+
+        mouse = pygame.mouse.get_pos()
+
+        if self.button_rect.collidepoint(mouse):
+            self.clicked = True
+
+    def draw(self):
+
+        cc = 0
+
+        mouse = pygame.mouse.get_pos()
+
+        if self.button_rect.collidepoint(mouse):
+            cc = 1
+
+            if pygame.mouse.get_pressed()[0]:
+                cc = 2
+            else:
+                self.clicked = False
+        else:
+            self.clicked = False
+
+        pygame.draw.rect(screen, self.fill_colors['normal'] if cc == 0 else (self.fill_colors['hover'] if cc == 1 else self.fill_colors['pressed']), self.button_rect, 0 if self.button_rect.collidepoint(mouse) else 2)
+        render_normal_text(str(self.button_text), self.x + self.x_offset + 17, self.y + self.y_offset + 7, (255, 255, 255), False)
+
+
+buttons = [
+    Button(size[0] - 116, 5, 50, 50, 0, "!"),
+    Button(size[0] - 55, 5, 50, 50, 0, "?", x_offset=1),
+    Button(5, 5, 50, 50, 0.1, "<")
+]
 
 run = True
 
@@ -186,9 +252,9 @@ while run:
                 if event.text.isnumeric():
                     answer_input += event.text
         elif event.type == pygame.MOUSEBUTTONUP:
-            if phase == 0 and mouse_hovering_help_box:
-                webbrowser.open("https://terukaaz.github.io")
-                logger.log("Navigating to help page on your browser...")
+            for button in buttons:
+                if button.render_phase == phase:
+                    button.update_mouse()
 
         elif event.type == pygame.KEYDOWN:
 
@@ -209,15 +275,41 @@ while run:
                     amount -= 1
                 if event.key == pygame.K_UP:
                     amount += 1
-                if event.key == pygame.K_m and seconds - 1 > 0:
+                if event.key == pygame.K_COMMA and seconds - 1 > 0:
                     seconds -= 1
                 if event.key == pygame.K_PERIOD:
                     seconds += 1
 
-            if phase == 4:
+            elif phase == 0.1:
+
+                if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    phase = 0
+
+                if event.key == pygame.K_LEFT and countdown_seconds - 1 > 0:
+                    countdown_seconds -= 1
+                if event.key == pygame.K_RIGHT:
+                    countdown_seconds += 1
+                if event.key == pygame.K_DOWN and amount - 1 > 0:
+                    number_font_size -= 1
+                if event.key == pygame.K_UP:
+                    number_font_size += 1
+                if event.key == pygame.K_COMMA and render_countdown:
+                    render_countdown = False
+                if event.key == pygame.K_PERIOD and not render_countdown:
+                    render_countdown = True
+                if event.key == pygame.K_n and tournament_mode:
+                    tournament_mode = False
+                if event.key == pygame.K_m and not tournament_mode:
+                    tournament_mode = True
+            elif phase == 4:
                 if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE:
                     answer_input = answer_input[:-1]
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+
+                    if tournament_mode:
+                        phase = 5
+                        t = 0
+                        break
 
                     if answer_input == "":
                         break
@@ -229,16 +321,40 @@ while run:
 
                     phase = 5
                     t = 0
+            elif phase >= 4:
+                if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    phase += 1
+                    t = 0
 
     t += dt
+
+    # button settings
+    for i in range(len(buttons)):
+        button = buttons[i]
+
+        if button.render_phase == phase:
+
+            if button.clicked:
+                if i == 0:
+                    phase = 0.1
+                elif i == 1:
+                    webbrowser.open("https://chromatic-vision.github.io/flashbox")
+                    logger.log("Navigating to help page on your browser...")
+                elif i == 2:
+                    phase = 0
+                else:
+                    logger.warn("?!?!")
+
+            button.draw()
+
 
     if phase == 0: # TODO: fix this shitty code
 
         pressdelay_decrease_seconds -= 1
 
-        if pygame.key.get_pressed()[pygame.K_COMMA] and seconds - 0.01 > 0 and pressdelay_decrease_seconds <= 0:  # so you can hold the key tp get -0.01 every 5 ticks, and you don't have to spam
+        if pygame.key.get_pressed()[pygame.K_m] and seconds - 0.01 > 0 and pressdelay_decrease_seconds <= 0:  # so you can hold the key tp get -0.01 every 5 ticks, and you don't have to spam
             seconds -= 0.01
-            pressdelay_decrease_seconds = 18
+            pressdelay_decrease_seconds = 24
 
         render_normal_text("Flashbox " + VERSION, 5, 5, (255, 255, 255), False)
 
@@ -253,12 +369,18 @@ while run:
         render_normal_text(", / .", size[0] / 3 + 425, 170, (255, 255, 255), False)
 
         render_normal_text("Press esc to exit, space/enter to start.", 5, size[1] - 40, (255, 255, 255), False)
+    
+    elif phase == 0.1: # settings screen
+        render_normal_text(f"Countdown seconds: {countdown_seconds}", size[0] / 3 - 100, 100, (255, 255, 255), False)
+        render_normal_text(f"Font size: {number_font_size}", size[0] / 3 - 100, 135, (255, 255, 255), False)
+        render_normal_text(f"Render countdown: {render_countdown}", size[0] / 3 - 100, 170, (255, 255, 255), False)
+        render_normal_text(f"Tournament mode: {tournament_mode}", size[0] / 3 - 100, 205, (255, 255, 255), False)
 
-        mouse_hovering_help_box = size[0] - 55 <= pygame.mouse.get_pos()[0] <= size[0] - 55 + 50 and pygame.mouse.get_pos()[1] >= 5 and pygame.mouse.get_pos()[1] <= 5 + 50
-
-        pygame.draw.rect(screen, (100, 100, 100) if mouse_hovering_help_box else (255, 255, 255), pygame.Rect(size[0] - 55, 5, 50, 50), 0 if mouse_hovering_help_box else 2)
-        render_normal_text("?", size[0] - 37, 12, (255, 255, 255), False)
-
+        render_normal_text("decrease / increase", size[0] / 3 + 320, 65, (255, 255, 255), False)
+        render_normal_text("← / →", size[0] / 3 + 425, 100, (255, 255, 255), False)
+        render_normal_text("↓ / ↑", size[0] / 3 + 425, 135, (255, 255, 255), False)
+        render_normal_text(", / .", size[0] / 3 + 425, 170, (255, 255, 255), False)
+        render_normal_text("N / M", size[0] / 3 + 425, 205, (255, 255, 255), False)
 
     elif phase == 1: # reset
         t = 0
@@ -301,29 +423,50 @@ while run:
             render_big_text(f"{last_number}", 0, 400, (0, 255, 0), True)
 
     elif phase == 4:
-        render_normal_text("Write your answer down....", 5, 5, (255, 255, 255), False)
-        render_big_text(f"{answer_input}", 0, 400, (0, 0, 255), True)
+        if tournament_mode:
+            render_normal_text("Fill in your answers...", 5, 5, (255, 255, 255), False)
+        else:
+            render_normal_text("Write your answer down....", 5, 5, (255, 255, 255), False)
+            render_big_text(f"{answer_input}", 0, 400, (0, 0, 255), True)
     elif phase == 5:
 
-        correct = int(answer_input) == total_sum
-
-        if t >= 3000:
-            if correct:
-                phase = 0
-            else:
-                phase = 6
+        if tournament_mode:
+            phase = 6
             t = 0
-        if correct:
-            draw_correct_circle(size[0] / 2 - 10, size[1] / 2, 80)
         else:
-            draw_incorrect_cross(size[0] / 2, size[1] / 2 + 30)
+            correct = int(answer_input) == total_sum
+
+            if t >= 1500:
+                if correct:
+                    phase = 0
+                else:
+                    phase = 6
+                t = 0
+            if correct:
+                draw_correct_circle(size[0] / 2 - 10, size[1] / 2, 80)
+            else:
+                draw_incorrect_cross(size[0] / 2, size[1] / 2 + 30)
 
     elif phase == 6:
-        render_big_text(f"{total_sum}", 0, 400, (255, 0, 0), True)
+        if tournament_mode:
 
-        if t >= 3000:
-            phase = 0
-            t = 0
+            big_non_numeric_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)
+
+            screen.blit(big_non_numeric_font.render("Answer:", True, (255, 255, 255)), (size[0] / 3 - 200, size[1] / 2 - 200))
+            render_big_text(f"{total_sum}", 0, 400, (0, 0, 255), True)
+
+            if t >= 4000:
+                phase = 0
+                t = 0
+        else:
+            render_big_text(f"{total_sum}", 0, 400, (255, 0, 0), True)
+
+            if t >= 1500:
+                phase = 0
+                t = 0
+    elif phase >= 7:
+        phase = 0
+        t = 0
 
     pygame.display.update()
 
