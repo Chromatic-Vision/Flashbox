@@ -123,7 +123,8 @@ load_config(config_file)
 logger.log(f"Language set to {current_lang}")
 
 # fonts
-big_font = pygame.font.Font("fonts/abacus.ttf", number_font_size)
+number_font = pygame.font.Font("fonts/abacus.ttf", number_font_size)
+big_text_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)
 normal_text_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 25)
 japanese_text_font = pygame.font.Font("fonts/noto-sans-jp-light.ttf", 25)
 
@@ -135,7 +136,7 @@ def get_middle_y(text: str, font: pygame.font.Font):
     return size[1] / 2 - font.size(text)[1] / 2
 
 def render_big_text(text, x, y, color, center: bool):
-    screen.blit(big_font.render(text, True, color), (get_middle_x(text, big_font) if center else x, get_middle_y(text, big_font) if center else y))
+    screen.blit(number_font.render(text, True, color), (get_middle_x(text, number_font) if center else x, get_middle_y(text, number_font) if center else y))
 
 def render_normal_text(text, x, y, color, center: bool):
     screen.blit(normal_text_font.render(text, True, color), (get_middle_x(text, normal_text_font) if center else x, get_middle_y(text, normal_text_font) if center else y))
@@ -181,6 +182,7 @@ def refresh():
 
 
 # random variables
+played_start_sound = False
 pressdelay_decrease_seconds = 0
 
 class Button:
@@ -386,6 +388,7 @@ while run:
         t = 0
 
         cs = countdown_seconds
+        played_start_sound = False
         total_sum = 0
         displayed_amount = 0
         answer_input = ""
@@ -398,16 +401,20 @@ while run:
             cs -= 1
             t = 0
 
-        if cs == 2 and 225 <= t <= 235:
+        if cs == 2 and t >= 225 and not played_start_sound:
             play_sound("sounds/start.wav")
+            played_start_sound = True
 
         if cs <= 0:
             t = 0
             refresh() # so we don't have to wait seconds / amount * 1000 ms after starting
             phase = 3
 
-        if render_countdown and cs > 0:
-            render_big_text(f"{cs}", 0, 400, (255, 255, 255), True)
+        if render_countdown:
+            if cs > 0:
+                render_big_text(f"{cs}", 0, 400, (255, 255, 255), True)
+        elif cs >= 4:
+            screen.blit(big_text_font.render(f"{digits}d {amount}x {round(seconds, 3)}s", True, (255, 255, 255)),(get_middle_x(f"{digits}d {amount}x {round(seconds, 3)}s", big_text_font), get_middle_y(f"{digits}d {amount}x {round(seconds, 3)}s", big_text_font)))
 
     elif phase == 3:
 
@@ -450,12 +457,10 @@ while run:
     elif phase == 6:
         if tournament_mode:
 
-            big_non_numeric_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)
-
-            screen.blit(big_non_numeric_font.render("Answer:", True, (255, 255, 255)), (size[0] / 3 - 200, size[1] / 2 - 200))
+            screen.blit(big_text_font.render("Answer:", True, (255, 255, 255)), (size[0] / 3 - 200, size[1] / 2 - 200))
             render_big_text(f"{total_sum}", 0, 400, (0, 0, 255), True)
 
-            if t >= 4000:
+            if t >= 20000:
                 phase = 0
                 t = 0
         else:
