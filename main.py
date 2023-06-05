@@ -163,9 +163,21 @@ def play_sound(filename):
 
 
 def random_with_custom_digits(n):
+
     range_start = 10 ** (n - 1)
     range_end = (10 ** n) - 1
-    return random.randint(range_start, range_end)
+
+    for j in range(range_end):
+
+        result = random.randint(range_start, range_end)
+
+        if result == last_number:
+            continue
+        else:
+            break
+
+
+    return result
 
 def refresh():
 
