@@ -206,6 +206,20 @@ class Flashbox:
             elif self.t >= self.seconds / self.amount * 1000:
                 self.refresh_numbers()
 
+        if self.phase == 6:
+
+            if self.t >= 5000:
+                if self.correct == 0:
+                    self.phase = 7
+                elif self.correct == 1:
+                    self.phase = 0
+
+                self.t = 0
+
+        if self.phase == 7:
+            if self.t >= 5000:
+                self.phase = 0
+
 
     def update(self):
 
@@ -219,6 +233,8 @@ class Flashbox:
                     self.run = 0
 
                 if self.phase == 0:
+
+                    self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
 
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         self.phase = 2
@@ -238,6 +254,10 @@ class Flashbox:
                         self.seconds += 1
 
                 elif self.phase == 1:
+
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                        self.phase = 0
+
                     if event.key == pygame.K_LEFT and self.countdown_seconds - 1 > 0:
                         self.countdown_seconds -= 1
                     if event.key == pygame.K_RIGHT:
@@ -360,7 +380,11 @@ class Flashbox:
 
         elif self.phase == 3:
             if self.render_countdown:
-                self.render_number(f"{self.cs}", (255, 255, 255))
+                if self.cs > 0:
+                    self.render_number(f"{self.cs}", (255, 255, 255))
+            else:
+                if self.cs >= 4:
+                    screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", True, (255, 255, 255)),(self.get_middle_x_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)), self.get_middle_y_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60))))
 
         elif self.phase == 4:
             if self.last_displayed_number > -1 and self.t <= (self.seconds / self.amount) * 1000 * 0.75:
@@ -398,9 +422,10 @@ class Flashbox:
     def refresh_numbers(self):
         self.t = 0
 
+        self.last_displayed_number = self.random_with_custom_digits(self.digits)
+
         play_sound(pygame.mixer.Sound("sounds/number_update.wav"))
 
-        self.last_displayed_number = self.random_with_custom_digits(self.digits)
         self.total_sum += self.last_displayed_number
 
         self.displayed_amount += 1
