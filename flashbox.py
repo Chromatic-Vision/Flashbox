@@ -3,6 +3,7 @@
 Flashbox v0.5a by Chromatic Vision. For more, visit https://chromatic-vision.github.io
 
 """
+
 import json
 import os
 import webbrowser
@@ -54,8 +55,8 @@ class Flashbox:
         self.correct = -1
 
         self.countdown_seconds = 4
-        self.render_countdown = True
-        self.number_font_size = 125
+        self.render_countdown = False
+        self.number_font_size = 130
 
         self.tournament_mode = False
 
@@ -278,7 +279,9 @@ class Flashbox:
                 elif self.phase == 5:
 
                     if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE:
+
                         self.input = self.input[:-1]
+
                     elif (event.key == pygame.K_RETURN or event.key == pygame.K_SPACE) and self.input != "":
 
                         self.phase = 6
@@ -308,6 +311,9 @@ class Flashbox:
             if event.type == pygame.TEXTINPUT:
                 if self.phase == 5:
                     if event.text.isnumeric():
+                        if event.text == "" or event.text == "0":
+                            if self.input == "0":
+                                return
                         self.input += event.text
 
             if event.type == pygame.MOUSEBUTTONUP:
