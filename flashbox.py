@@ -18,6 +18,9 @@ def play_sound(sound):
     pygame.mixer.music.stop()
     pygame.mixer.Sound.play(sound)
 
+def smash():
+    pass
+
 
 class Flashbox:
 
@@ -186,7 +189,7 @@ class Flashbox:
 
         if self.phase == 3:
 
-            if self.cs == 2 and self.t == 225:
+            if self.cs == 2 and self.t == 235:
                 play_sound(pygame.mixer.Sound("sounds/start.wav"))
 
             if self.cs <= 0:
@@ -282,24 +285,33 @@ class Flashbox:
 
                         self.input = self.input[:-1]
 
-                    elif (event.key == pygame.K_RETURN or event.key == pygame.K_SPACE) and self.input != "":
+                    elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
 
-                        self.phase = 6
+                        if self.tournament_mode:
+                            self.phase = 6
+                        else:
 
-                        try:
-                            self.correct = int(int(self.input) == self.total_sum)
-                        except ValueError:
-                            logger.warn("You are typing invalid numbers!!")
-                            return
+                            if self.input == "":
+                                return
 
-                        if self.correct == 0:
-                            play_sound(pygame.mixer.Sound("sounds/incorrect.wav"))
-                        elif self.correct == 1:
-                            play_sound(pygame.mixer.Sound("sounds/correct.wav"))
+                            self.phase = 6
+
+                            try:
+                                self.correct = int(int(self.input) == self.total_sum)
+                            except ValueError:
+                                logger.warn("You are typing invalid numbers!!")
+                                return
+
+                            if self.correct == 0:
+                                play_sound(pygame.mixer.Sound("sounds/incorrect.wav"))
+                            elif self.correct == 1:
+                                play_sound(pygame.mixer.Sound("sounds/correct.wav"))
 
                 elif self.phase == 6:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                        if self.correct == 0:
+                        if self.correct == -1:
+                            self.phase = 0
+                        elif self.correct == 0:
                             self.phase = 7
                         elif self.correct == 1:
                             self.phase = 0
@@ -358,6 +370,7 @@ class Flashbox:
             button.draw()
 
         if self.phase == 0:
+
             self.render_normal_text("Flashbox " + VERSION, 5, 5, (255, 255, 255))
 
             self.render_normal_text(f"Digits: {self.digits}", self.size[0] / 3 - 100, 100, (255, 255, 255))
@@ -397,14 +410,32 @@ class Flashbox:
                 self.render_number(f"{self.last_displayed_number}", (0, 255, 0))
 
         elif self.phase == 5:
-            self.render_normal_text("Write your answer down....", 5, 5, (255, 255, 255))
-            self.render_number(f"{self.input}", (0, 0, 255))
+
+            if self.tournament_mode:
+                self.render_normal_text("Fill in your answers...", 5, 5, (255, 255, 255))
+            else:
+                self.render_normal_text("Write your answer down...", 5, 5, (255, 255, 255))
+                self.render_number(f"{self.input}", (0, 0, 255))
 
         elif self.phase == 6:
-            if self.correct == 0:
-                self.draw_incorrect_cross(self.size[0] / 2, self.size[1] / 2 + 30)
+
+            if self.tournament_mode:
+                self.render_number(f"{self.total_sum}", (255, 255, 0), self.size[0] - 175 - self.number_font.size(f"{self.total_sum}")[0])
+
+                # ly = 85
+                ly = round(self.number_font_size / 1.52941176471)
+
+                pygame.draw.line(screen, (255, 255, 255), (250, self.size[1] / 2 + ly), (self.size[0] - 50, self.size[1] / 2 + ly), 5)
+
+                pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 100, self.size[1] / 2 + ly - 15), (self.size[0] - 115, self.size[1] / 2 + ly + 15), 5)
+                pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 85, self.size[1] / 2 + ly - 15), (self.size[0] - 100, self.size[1] / 2 + ly + 15), 5)
+                smash
+
             else:
-                self.draw_correct_circle(self.size[0] / 2 - 10, self.size[1] / 2, 100)
+                if self.correct == 0:
+                    self.draw_incorrect_cross(self.size[0] / 2, self.size[1] / 2 + 30)
+                else:
+                    self.draw_correct_circle(self.size[0] / 2 - 10, self.size[1] / 2, 100)
 
         elif self.phase == 7:
             self.render_number(f"{self.total_sum}", (255, 255, 0))

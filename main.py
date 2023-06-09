@@ -47,7 +47,7 @@ class PeriodicSleeper(threading.Thread):
             time.sleep(delta)
 
     def run(self):
-        while True:
+        while 1:
             self.task_function()
             self.sleep()
 
