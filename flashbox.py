@@ -189,7 +189,7 @@ class Flashbox:
 
         if self.phase == 3:
 
-            if self.cs == 2 and self.t == 235:
+            if self.cs == 2 and self.t == 232:
                 play_sound(pygame.mixer.Sound("sounds/start.wav"))
 
             if self.cs <= 0:
@@ -406,7 +406,7 @@ class Flashbox:
                     screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", True, (255, 255, 255)),(self.get_middle_x_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)), self.get_middle_y_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60))))
 
         elif self.phase == 4:
-            if self.last_displayed_number > -1 and self.t <= (self.seconds / self.amount) * 1000 * 0.75:
+            if self.last_displayed_number > -1 and self.t <= self.seconds / self.amount * 1000 * 0.725:
                 self.render_number(f"{self.last_displayed_number}", (0, 255, 0))
 
         elif self.phase == 5:
