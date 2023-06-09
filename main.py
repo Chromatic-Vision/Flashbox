@@ -55,6 +55,7 @@ if run:
     sleeper = PeriodicSleeper(f.update_time, 0.001)
 
 while run:
+
     run = f.run
     clock.tick(FPS)
     f.update()

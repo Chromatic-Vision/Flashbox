@@ -189,7 +189,7 @@ class Flashbox:
 
         if self.phase == 3:
 
-            if self.cs == 2 and self.t == 232:
+            if self.cs == 2 and self.t == 232: # TODO: ???
                 play_sound(pygame.mixer.Sound("sounds/start.wav"))
 
             if self.cs <= 0:
@@ -289,6 +289,8 @@ class Flashbox:
 
                         if self.tournament_mode:
                             self.phase = 6
+
+                            play_sound(pygame.mixer.Sound("sounds/answer_reveal.wav"))
                         else:
 
                             if self.input == "":
@@ -456,7 +458,8 @@ class Flashbox:
 
         return result
 
-    def refresh_numbers(self):
+    def refresh_numbers(self): # TOOD: remove the lag
+
         self.t = 0
 
         self.last_displayed_number = self.random_with_custom_digits(self.digits)
