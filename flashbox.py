@@ -422,15 +422,19 @@ class Flashbox:
         elif self.phase == 6:
 
             if self.tournament_mode:
-                self.render_number(f"{self.total_sum}", (255, 255, 0), self.size[0] - 175 - self.number_font.size(f"{self.total_sum}")[0])
+
+                screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render("Answer:", True, (255, 255, 255)), (200, self.size[1] / 2 - 200))
+                self.render_number(f"{self.total_sum}", (255, 255, 0), self.size[0] - 225 - self.number_font.size(f"{self.total_sum}")[0])
 
                 # ly = 85
                 ly = round(self.number_font_size / 1.52941176471)
 
-                pygame.draw.line(screen, (255, 255, 255), (250, self.size[1] / 2 + ly), (self.size[0] - 50, self.size[1] / 2 + ly), 5)
+                pygame.draw.line(screen, (255, 255, 255), (200, self.size[1] / 2 + ly), (self.size[0] - 150, self.size[1] / 2 + ly), 5)
 
-                pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 100, self.size[1] / 2 + ly - 15), (self.size[0] - 115, self.size[1] / 2 + ly + 15), 5)
-                pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 85, self.size[1] / 2 + ly - 15), (self.size[0] - 100, self.size[1] / 2 + ly + 15), 5)
+                # - 25
+
+                pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 185, self.size[1] / 2 + ly - 15), (self.size[0] - 200, self.size[1] / 2 + ly + 15), 5)
+                pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 170, self.size[1] / 2 + ly - 15), (self.size[0] - 185, self.size[1] / 2 + ly + 15), 5)
                 smash
 
             else:
