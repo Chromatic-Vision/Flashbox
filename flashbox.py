@@ -42,10 +42,10 @@ class Flashbox:
 
         self.digits = 1
         self.amount = 4
-        self.seconds = 1.55
+        self.seconds = 2.5
 
         self.t = 0
-        self.cs = 4
+        self.cs = 5
         self.phase = 0
 
         self.first_refresh_done = False
@@ -389,7 +389,7 @@ class Flashbox:
 
         elif self.phase == 1:
             self.render_normal_text(f"Countdown seconds: {self.countdown_seconds}", self.size[0] / 3 - 100, 100, (255, 255, 255))
-            self.render_normal_text(f"Font size: {self.number_font_size}", self.size[0] / 3 - 100, 135, (255, 255, 255))
+            self.render_normal_text(f"Font size: {self.number_font_size} (restart needed)", self.size[0] / 3 - 100, 135, (255, 255, 255))
             self.render_normal_text(f"Render countdown: {self.render_countdown}", self.size[0] / 3 - 100, 170, (255, 255, 255))
             self.render_normal_text(f"Tournament mode: {self.tournament_mode}", self.size[0] / 3 - 100, 205, (255, 255, 255))
 
