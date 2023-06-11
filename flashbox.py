@@ -1,6 +1,6 @@
 """
 
-Flashbox v0.5a by Chromatic Vision. For more, visit https://chromatic-vision.github.io
+Flashbox v0.5b by Chromatic Vision. For more, visit https://chromatic-vision.github.io
 
 """
 
@@ -12,7 +12,7 @@ import random
 
 import logger
 
-VERSION = "v0.5a"
+VERSION = "v0.5b"
 
 def play_sound(sound):
     pygame.mixer.music.stop()
