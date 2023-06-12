@@ -15,7 +15,7 @@ from pathlib import Path
 
 import logger
 
-VERSION = "v0.5b"
+VERSION = "v0.5c"
 
 def play_sound(sound):
     pygame.mixer.music.stop()
