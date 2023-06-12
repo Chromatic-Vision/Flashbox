@@ -6,9 +6,12 @@ Flashbox v0.5b by Chromatic Vision. For more, visit https://chromatic-vision.git
 
 import json
 import os
+import platform
 import webbrowser
 import pygame
 import random
+
+from pathlib import Path
 
 import logger
 
@@ -31,13 +34,12 @@ class Flashbox:
         self.run = 1
         self.screen = screen
         self.size = screen.get_size()
-        self.number_font = pygame.font.Font("fonts/abacus.ttf", 125)
-        self.normal_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 25)
 
         self.buttons = [
             Flashbox.Button(self, self.size[0] - 116, 5, 50, 50, 0, "!"),
             Flashbox.Button(self, self.size[0] - 55, 5, 50, 50, 0, "?", x_offset=1),
-            Flashbox.Button(self, 5, 5, 50, 50, 1, "<")
+            Flashbox.Button(self, 5, 5, 50, 50, 1, "<"),
+            Flashbox.Button(self, self.size[0] / 3 - 100, 270, 605, 50, 1, "Create shortcut on your desktop...")
         ]
 
         self.digits = 1
@@ -59,9 +61,52 @@ class Flashbox:
 
         self.countdown_seconds = 4
         self.render_countdown = False
-        self.number_font_size = 130
+        self.number_font_size = 150
+
+        self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
+        self.normal_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 25)
 
         self.tournament_mode = False
+
+    def create_shortcut(self):
+
+        import main
+
+        if platform.system() == "Windows":
+            try:
+                import winshell
+                from win32com.client import Dispatch
+
+                path = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop") + "\\Flashbox.lnk"
+                target = os.path.abspath(main.__file__)
+                work_dir = os.path.dirname(os.path.abspath(main.__file__))
+
+                shell = Dispatch('WScript.Shell')
+                shortcut = shell.CreateShortCut(path)
+                shortcut.Targetpath = target
+                shortcut.WorkingDirectory = work_dir
+                shortcut.save()
+
+            except ModuleNotFoundError:
+                try:
+                    path = Path(os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop") + "\\Flashbox.lnk")
+                    target = Path(os.path.abspath(main.__file__))
+
+                    path.symlink_to(target)
+                except Exception as e:
+                    logger.warn("Could not create shortcut file on your desktop. Probably unsupported windows version?")
+                    logger.error(repr(e))
+                    pass
+
+        else:
+            try:
+                link = Path("~/Desktop/Flashbox")
+                target = Path(os.path.realpath(main.__file__))
+
+                link.symlink_to(target)
+            except Exception as e:
+                logger.warn(f'Could not create shortcut file on your desktop. Probably unsupported os "{platform.system()}"?')
+                logger.error(repr(e))
 
     def save_config(self, filename):
         with open(filename, 'w') as file:
@@ -101,6 +146,8 @@ class Flashbox:
             self.render_countdown = data["render_countdown"]
             self.number_font_size = data["number_font_size"]
             self.tournament_mode = data["tournament_mode"]
+
+            self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
 
     class Inner(object):
         pass
@@ -238,8 +285,6 @@ class Flashbox:
 
                 if self.phase == 0:
 
-                    self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
-
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         self.phase = 2
                         logger.log(f"Starting! digits={self.digits}, amount={self.amount}, seconds={self.seconds}")
@@ -268,8 +313,10 @@ class Flashbox:
                         self.countdown_seconds += 1
                     if event.key == pygame.K_DOWN and self.number_font_size - 1 > 0:
                         self.number_font_size -= 1
+                        self.number_font = pygame.font.Font("fonts/abacus.ttf", 130)
                     if event.key == pygame.K_UP:
                         self.number_font_size += 1
+                        self.number_font = pygame.font.Font("fonts/abacus.ttf", 130)
                     if event.key == pygame.K_COMMA and self.render_countdown:
                         self.render_countdown = False
                     if event.key == pygame.K_PERIOD and not self.render_countdown:
@@ -354,8 +401,10 @@ class Flashbox:
                         logger.log("Navigating to help page on your browser...")
                     elif i == 2:
                         self.phase = 0
+                    elif i == 3:
+                        self.create_shortcut()
                     else:
-                        logger.warn("?!?!")
+                        logger.warn("?!")
 
                 button.draw()
 
@@ -389,7 +438,7 @@ class Flashbox:
 
         elif self.phase == 1:
             self.render_normal_text(f"Countdown seconds: {self.countdown_seconds}", self.size[0] / 3 - 100, 100, (255, 255, 255))
-            self.render_normal_text(f"Font size: {self.number_font_size} (restart needed)", self.size[0] / 3 - 100, 135, (255, 255, 255))
+            self.render_normal_text(f"Font size: {self.number_font_size}", self.size[0] / 3 - 100, 135, (255, 255, 255))
             self.render_normal_text(f"Render countdown: {self.render_countdown}", self.size[0] / 3 - 100, 170, (255, 255, 255))
             self.render_normal_text(f"Tournament mode: {self.tournament_mode}", self.size[0] / 3 - 100, 205, (255, 255, 255))
 
