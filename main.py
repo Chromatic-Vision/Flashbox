@@ -16,6 +16,8 @@ size = (0, 0)
 screen = pygame.display.set_mode(size, pygame.RESIZABLE)
 size = screen.get_size()
 
+f = flashbox.Flashbox(screen)
+
 FPS = 60
 clock = pygame.time.Clock()
 
@@ -27,7 +29,6 @@ pygame.display.set_icon(pygame.image.load("images/flashbox.ico"))
 
 run = 1
 
-f = flashbox.Flashbox(screen)
 f.load()
 
 class PeriodicSleeper(threading.Thread):

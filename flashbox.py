@@ -7,6 +7,7 @@ Flashbox v0.5b by Chromatic Vision. For more, visit https://chromatic-vision.git
 import json
 import os
 import platform
+import sys
 import webbrowser
 import pygame
 import random
@@ -68,9 +69,13 @@ class Flashbox:
 
         self.tournament_mode = False
 
+
+
     def create_shortcut(self):
 
-        import main
+        original_exec_file_name = sys.argv[0]
+        
+        logger.log(f"Creating desktop shortcut that links to {original_exec_file_name}")
 
         if platform.system() == "Windows":
             try:
@@ -78,8 +83,8 @@ class Flashbox:
                 from win32com.client import Dispatch
 
                 path = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop") + "\\Flashbox.lnk"
-                target = os.path.abspath(main.__file__)
-                work_dir = os.path.dirname(os.path.abspath(main.__file__))
+                target = os.path.abspath(original_exec_file_name)
+                work_dir = os.path.dirname(os.path.abspath(original_exec_file_name))
 
                 shell = Dispatch('WScript.Shell')
                 shortcut = shell.CreateShortCut(path)
@@ -90,7 +95,7 @@ class Flashbox:
             except ModuleNotFoundError:
                 try:
                     path = Path(os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop") + "\\Flashbox.lnk")
-                    target = Path(os.path.abspath(main.__file__))
+                    target = Path(os.path.abspath(original_exec_file_name))
 
                     path.symlink_to(target)
                 except Exception as e:
@@ -101,7 +106,7 @@ class Flashbox:
         else:
             try:
                 link = Path("~/Desktop/Flashbox")
-                target = Path(os.path.realpath(main.__file__))
+                target = Path(os.path.realpath(original_exec_file_name))
 
                 link.symlink_to(target)
             except Exception as e:
