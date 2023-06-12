@@ -1,6 +1,6 @@
 """
 
-Flashbox v0.5b by Chromatic Vision. For more, visit https://chromatic-vision.github.io
+Flashbox v0.5c by Chromatic Vision. For more, visit https://chromatic-vision.github.io
 
 """
 
