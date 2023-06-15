@@ -1,6 +1,6 @@
 """
 
-Flashbox v0.5c by Chromatic Vision. For more, visit https://chromatic-vision.github.io
+Flashbox v0.6 by Chromatic Vision. For more, visit https://chromatic-vision.github.io
 
 """
 
@@ -10,17 +10,16 @@ import os
 import platform
 import sys
 import webbrowser
-from collections import defaultdict
-
 import pygame
 import random
 
+from collections import defaultdict
 from pathlib import Path
 
 import abacus
 import logger
 
-VERSION = "v0.5c"
+VERSION = "v0.6"
 
 def play_sound(sound):
     pygame.mixer.music.stop()
@@ -44,7 +43,7 @@ class Flashbox:
             Flashbox.Button(self, self.size[0] - 116, 5, 50, 50, 0, "!"),
             Flashbox.Button(self, self.size[0] - 55, 5, 50, 50, 0, "?", x_offset=1),
             Flashbox.Button(self, 5, 5, 50, 50, 1, "<"),
-            Flashbox.Button(self, self.size[0] / 3 - 100, 270, 605, 50, 1, "Create shortcut on your desktop...")
+            Flashbox.Button(self, self.size[0] / 3 - 100, 300, 605, 50, 1, "Create shortcut on your desktop...")
         ]
 
         self.digits = 1
@@ -67,14 +66,15 @@ class Flashbox:
         self.input = ""
         self.correct = -1
 
-        self.countdown_seconds = 4
+        self.countdown_seconds = 5
         self.render_countdown = False
-        self.number_font_size = 150
+        self.number_font_size = 160
 
         self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
         self.normal_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 25)
 
         self.tournament_mode = False
+        self.render_abacus = False
 
         self.reset_latest()
 
@@ -132,6 +132,7 @@ class Flashbox:
                 "render_countdown": self.render_countdown,
                 "number_font_size": self.number_font_size,
                 "tournament_mode": self.tournament_mode,
+                "render_abacus": self.render_abacus
             }
 
             json.dump(data, file)
@@ -160,6 +161,7 @@ class Flashbox:
             self.render_countdown = data["render_countdown"]
             self.number_font_size = data["number_font_size"]
             self.tournament_mode = data["tournament_mode"]
+            self.render_abacus = data["render_abacus"]
 
             self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
 
@@ -291,6 +293,7 @@ class Flashbox:
         if self.phase == 7:
             if self.t >= 5000:
                 self.phase = 0
+                self.t = 0
 
 
     def update(self):
@@ -342,9 +345,13 @@ class Flashbox:
                         self.render_countdown = False
                     if event.key == pygame.K_PERIOD and not self.render_countdown:
                         self.render_countdown = True
-                    if event.key == pygame.K_n and self.tournament_mode:
+                    if event.key == pygame.K_n and self.render_abacus:
+                        self.render_abacus = False
+                    if event.key == pygame.K_m and not self.render_abacus:
+                        self.render_abacus = True
+                    if event.key == pygame.K_v and self.tournament_mode:
                         self.tournament_mode = False
-                    if event.key == pygame.K_m and not self.tournament_mode:
+                    if event.key == pygame.K_b and not self.tournament_mode:
                         self.tournament_mode = True
 
                 elif self.phase == 5:
@@ -376,6 +383,7 @@ class Flashbox:
                                 play_sound(pygame.mixer.Sound("sounds/correct.wav"))
 
                             self.phase = 6
+                            self.t = 0
                             return
 
                 elif self.phase == 6:
@@ -384,13 +392,16 @@ class Flashbox:
                             self.phase = 0
                         elif self.correct == 0:
                             self.phase = 7
+                            self.t = 0
                             return
                         elif self.correct == 1:
                             self.phase = 0
+                            self.t = 0
 
                 elif self.phase == 7:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         self.phase = 0
+                        self.t = 0
 
             if event.type == pygame.TEXTINPUT:
                 if self.phase == 5:
@@ -463,13 +474,15 @@ class Flashbox:
             self.render_normal_text(f"Countdown seconds: {self.countdown_seconds}", self.size[0] / 3 - 100, 100, (255, 255, 255))
             self.render_normal_text(f"Font size: {self.number_font_size}", self.size[0] / 3 - 100, 135, (255, 255, 255))
             self.render_normal_text(f"Render countdown: {self.render_countdown}", self.size[0] / 3 - 100, 170, (255, 255, 255))
-            self.render_normal_text(f"Tournament mode: {self.tournament_mode}", self.size[0] / 3 - 100, 205, (255, 255, 255))
+            self.render_normal_text(f"Render abacus: {self.render_abacus}", self.size[0] / 3 - 100, 205, (255, 255, 255))
+            self.render_normal_text(f"Tournament mode: {self.tournament_mode}", self.size[0] / 3 - 100, 240, (255, 255, 255))
 
             self.render_normal_text("decrease / increase", self.size[0] / 3 + 320, 65, (255, 255, 255))
             self.render_normal_text("← / →", self.size[0] / 3 + 425, 100, (255, 255, 255))
             self.render_normal_text("↓ / ↑", self.size[0] / 3 + 425, 135, (255, 255, 255))
             self.render_normal_text(", / .", self.size[0] / 3 + 425, 170, (255, 255, 255))
             self.render_normal_text("N / M", self.size[0] / 3 + 425, 205, (255, 255, 255))
+            self.render_normal_text("V / B", self.size[0] / 3 + 425, 240, (255, 255, 255))
 
         elif self.phase == 3:
             if self.render_countdown:
@@ -483,7 +496,8 @@ class Flashbox:
             if self.last_displayed_number > -1 and self.t <= self.seconds / self.amount * 1000 * self.flash_display_rate:
                 self.render_number(f"{self.last_displayed_number}", (0, 255, 0))
 
-            self.draw_abacus()
+            if self.render_abacus:
+                self.draw_abacus()
 
         elif self.phase == 5:
 
