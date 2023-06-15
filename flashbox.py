@@ -4,6 +4,7 @@ Flashbox v0.5c by Chromatic Vision. For more, visit https://chromatic-vision.git
 
 """
 
+import itertools
 import json
 import os
 import platform
@@ -14,6 +15,7 @@ import random
 
 from pathlib import Path
 
+import abacus
 import logger
 
 VERSION = "v0.5c"
@@ -47,12 +49,15 @@ class Flashbox:
         self.amount = 4
         self.seconds = 2.5
 
+        self.flash_display_rate = 0.55
+
         self.t = 0
         self.cs = 5
         self.phase = 0
 
         self.first_refresh_done = False
 
+        self.abacus = abacus.SimpleAbacus()
         self.total_sum = 0
         self.displayed_amount = 0
         self.last_displayed_number = 0
@@ -68,6 +73,8 @@ class Flashbox:
         self.normal_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 25)
 
         self.tournament_mode = False
+
+        self.reset_latest()
 
 
 
@@ -122,7 +129,7 @@ class Flashbox:
                 "countdown_seconds": self.countdown_seconds,
                 "render_countdown": self.render_countdown,
                 "number_font_size": self.number_font_size,
-                "tournament_mode": self.tournament_mode
+                "tournament_mode": self.tournament_mode,
             }
 
             json.dump(data, file)
@@ -236,12 +243,14 @@ class Flashbox:
             self.last_displayed_number = -1
             self.input = ""
             self.correct = -1
+            self.abacus.reset()
+            self.reset_latest()
 
             self.phase = 3
 
         if self.phase == 3:
 
-            if self.cs == 2 and self.t == 232: # TODO: ???
+            if self.cs == 2 and self.t == 231: # TODO: ???
                 play_sound(pygame.mixer.Sound("sounds/start.wav"))
 
             if self.cs <= 0:
@@ -348,8 +357,6 @@ class Flashbox:
                             if self.input == "":
                                 return
 
-                            self.phase = 6
-
                             try:
                                 self.correct = int(int(self.input) == self.total_sum)
                             except ValueError:
@@ -361,12 +368,16 @@ class Flashbox:
                             elif self.correct == 1:
                                 play_sound(pygame.mixer.Sound("sounds/correct.wav"))
 
+                            self.phase = 6
+                            return
+
                 elif self.phase == 6:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         if self.correct == -1:
                             self.phase = 0
                         elif self.correct == 0:
                             self.phase = 7
+                            return
                         elif self.correct == 1:
                             self.phase = 0
 
@@ -462,8 +473,10 @@ class Flashbox:
                     screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", True, (255, 255, 255)),(self.get_middle_x_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)), self.get_middle_y_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60))))
 
         elif self.phase == 4:
-            if self.last_displayed_number > -1 and self.t <= self.seconds / self.amount * 1000 * 0.725:
+            if self.last_displayed_number > -1 and self.t <= self.seconds / self.amount * 1000 * self.flash_display_rate:
                 self.render_number(f"{self.last_displayed_number}", (0, 255, 0))
+
+            self.draw_abacus()
 
         elif self.phase == 5:
 
@@ -485,11 +498,8 @@ class Flashbox:
 
                 pygame.draw.line(screen, (255, 255, 255), (200, self.size[1] / 2 + ly), (self.size[0] - 150, self.size[1] / 2 + ly), 5)
 
-                # - 25
-
                 pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 185, self.size[1] / 2 + ly - 15), (self.size[0] - 200, self.size[1] / 2 + ly + 15), 5)
                 pygame.draw.line(screen, (255, 255, 255), (self.size[0] - 170, self.size[1] / 2 + ly - 15), (self.size[0] - 185, self.size[1] / 2 + ly + 15), 5)
-                smash
 
             else:
                 if self.correct == 0:
@@ -500,33 +510,126 @@ class Flashbox:
         elif self.phase == 7:
             self.render_number(f"{self.total_sum}", (255, 255, 0))
 
-    def random_with_custom_digits(self, n):
+    def count_carries(self, n1, n2): # shhh
+
+        n1, n2 = str(n1), str(n2)
+        carry, answer = 0, 0
+
+        for one, two in itertools.zip_longest(n1[::-1], n2[::-1], fillvalue='0'):
+            carry = int(((int(one) + int(two) + carry) // 10) > 0)
+            answer += ((int(one) + int(two) + carry) // 10) > 0
+            carry += ((int(one) + int(two) + carry) // 10) > 0
+
+        return answer
+
+    def get_random(self, n):
 
         range_start = 10 ** (n - 1)
         range_end = (10 ** n) - 1
 
-        for j in range(range_end):
-
-            result = random.randint(range_start, range_end)
-
-            if result == self.last_displayed_number:
-                continue
-            else:
-                break
+        result = random.randint(range_start, range_end)
 
         return result
 
-    def refresh_numbers(self): # TOOD: remove the lag
+    def get_max_carries(self, digits):
+        if digits == 0:
+            return "??????????????"
+        elif digits == 1:
+            return 1
+        elif digits == 2:
+            return 1
+        elif digits == 3:
+            return 2
+        elif digits == 4:
+            return 2
+        elif digits == 5:
+            return 3
+        elif digits == 5:
+            return 3
+        elif digits == 6:
+            return 4
+        elif digits == 7:
+            return 4
+        elif digits == 8:
+            return 5
+        elif digits == 9:
+            return 6
+        else:
+            return 32767
+
+    def get_next_number(self, n):
+
+        max_carries = self.get_max_carries(n)
+
+        while 1:
+            res = self.get_random(n)
+
+            if self.count_carries(res, self.total_sum) <= max_carries:
+                break
+
+        return res
+
+    def refresh_numbers(self): # TODO: remove the lag
 
         self.t = 0
 
-        self.last_displayed_number = self.random_with_custom_digits(self.digits)
+        self.last_displayed_number = self.get_next_number(self.digits)
+        self.abacus.add_value(self.last_displayed_number)
 
         play_sound(pygame.mixer.Sound("sounds/number_update.wav"))
 
+        self.write_latest(self.last_displayed_number, self.displayed_amount == self.amount - 1)
+
         self.total_sum += self.last_displayed_number
 
+        logger.log(f"total: {self.total_sum}, last: {self.last_displayed_number}")
+
         self.displayed_amount += 1
+
+    def write_latest(self, number, finished):
+        with open("latest.acf", "a") as f:
+            f.write(str(number) + "\n")
+
+            if finished:
+                f.write("==========\n")
+                f.write(str(self.total_sum))
+
+    def reset_latest(self):
+        with open("latest.acf", "w") as f:
+            f.truncate()
+
+    def draw_abacus(self):
+        ax = 5
+
+        pygame.draw.line(self.screen, (100, 100, 100), (5, self.size[1] - 100), (self.abacus.range * 20, self.size[1] - 100), 2)
+
+        for i in range(self.abacus.range):
+
+            vb = self.abacus.beads[i]
+            upper, lower = abacus.get_vertical_beads_pos(vb.current_sum)
+
+            # draw upper beads
+
+            if upper == 0:
+                pygame.draw.rect(self.screen, (255, 255, 255), (ax, self.size[1] - 130, 10, 10))
+            elif upper == 1:
+                pygame.draw.rect(self.screen, (255, 255, 255), (ax, self.size[1] - 115, 10, 10))
+            else:
+                logger.warn(f"Upper value of the vertical bead @ {i} is not 0 or 1?????????")
+
+            # draw lower beads
+            ay = self.size[1] - 110
+
+            for j in range(5):
+
+                ay += 15
+
+                if j == lower:
+                    continue
+
+                pygame.draw.rect(self.screen, (255, 255, 255), (ax, ay, 10, 10))
+
+            ax += 20
 
     def draw_correct_circle(self, x, y, r):
         pygame.draw.circle(self.screen, (50, 255, 50), (x, y), r, 15)
