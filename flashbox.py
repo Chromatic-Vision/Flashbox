@@ -10,6 +10,8 @@ import os
 import platform
 import sys
 import webbrowser
+from collections import defaultdict
+
 import pygame
 import random
 
@@ -59,7 +61,7 @@ class Flashbox:
 
         self.abacus = abacus.SimpleAbacus()
         self.total_sum = 0
-        self.displayed_amount = 0
+        self.refreshed_amount = 0
         self.last_displayed_number = 0
 
         self.input = ""
@@ -239,7 +241,7 @@ class Flashbox:
             self.cs = self.countdown_seconds
             self.first_refresh_done = False
             self.total_sum = 0
-            self.displayed_amount = 0
+            self.refreshed_amount = 0
             self.last_displayed_number = -1
             self.input = ""
             self.correct = -1
@@ -253,6 +255,9 @@ class Flashbox:
             if self.cs == 2 and self.t == 231: # TODO: ???
                 play_sound(pygame.mixer.Sound("sounds/start.wav"))
 
+            if self.cs == 1 and self.t == 1:
+                self.pre_refresh_numbers()
+
             if self.cs <= 0:
                 self.phase = 4
                 self.t = 0
@@ -265,9 +270,11 @@ class Flashbox:
             if not self.first_refresh_done:
                 self.refresh_numbers()
                 self.first_refresh_done = True
-            elif self.displayed_amount >= self.amount:
+            elif self.refreshed_amount >= self.amount:
                 if self.t >= self.seconds / self.amount * 1000:
                     self.phase = 5
+            elif self.t == round(self.seconds / self.amount * 1000 * self.flash_display_rate):
+                self.pre_refresh_numbers()
             elif self.t >= self.seconds / self.amount * 1000:
                 self.refresh_numbers()
 
@@ -561,27 +568,47 @@ class Flashbox:
         max_carries = self.get_max_carries(n)
 
         while 1:
+
             res = self.get_random(n)
 
-            if self.count_carries(res, self.total_sum) <= max_carries:
-                break
+            if self.count_carries(res, self.total_sum) <= max_carries and check_for_same_digit(res):
+
+                lres = [int(i) for i in str(res)]
+
+                try:
+                    lldn = [int(i) for i in str(self.last_displayed_number)]
+                except ValueError:
+                    return res
+
+                valid = True
+
+                for i in range(len(lres)):
+
+                    if lres[i] == lldn[i]:
+                        valid = False
+                        break
+                    else:
+                        continue
+
+                if valid:
+                    break
 
         return res
+    
+    def pre_refresh_numbers(self):
+        self.last_displayed_number = self.get_next_number(self.digits)
+        self.write_latest(self.last_displayed_number, self.refreshed_amount == self.amount - 1)
+
+        self.total_sum += self.last_displayed_number
 
     def refresh_numbers(self): # TODO: remove the lag
 
         self.t = 0
 
-        self.last_displayed_number = self.get_next_number(self.digits)
+        play_sound(pygame.mixer.Sound("sounds/number_update.wav"))
         self.abacus.add_value(self.last_displayed_number)
 
-        play_sound(pygame.mixer.Sound("sounds/number_update.wav"))
-
-        self.write_latest(self.last_displayed_number, self.displayed_amount == self.amount - 1)
-
-        self.total_sum += self.last_displayed_number
-
-        self.displayed_amount += 1
+        self.refreshed_amount += 1
 
     def write_latest(self, number, finished):
         with open("latest.acf", "a") as f:
@@ -596,6 +623,7 @@ class Flashbox:
             f.truncate()
 
     def draw_abacus(self):
+        
         ax = 5
 
         pygame.draw.line(self.screen, (100, 100, 100), (5, self.size[1] - 100), (self.abacus.range * 20, self.size[1] - 100), 2)
@@ -656,3 +684,18 @@ class Flashbox:
         self.screen.blit(self.number_font.render(text, True, color), (x if x > -32768 else self.get_middle_x_font(text, self.number_font), y if y > -32768 else self.get_middle_y_font(text, self.number_font)))
 
 
+def check_for_same_digit(num):
+    number = str(num)
+
+    freq = defaultdict(int)
+    n = len(number)
+
+    for i in range(n):
+        freq[int(number[i])] += 1
+
+    freq_values = set(freq.values())
+
+    if len(freq_values) == 1:
+        return True
+
+    return False
