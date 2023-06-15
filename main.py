@@ -18,7 +18,7 @@ size = screen.get_size()
 
 f = flashbox.Flashbox(screen)
 
-FPS = 60
+FPS = 120
 clock = pygame.time.Clock()
 
 logger.log(f"Screen size: {size[0]}, {size[1]}")

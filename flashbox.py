@@ -273,7 +273,7 @@ class Flashbox:
             elif self.refreshed_amount >= self.amount:
                 if self.t >= self.seconds / self.amount * 1000:
                     self.phase = 5
-            elif self.t == round(self.seconds / self.amount * 1000 * self.flash_display_rate):
+            elif self.t == round(self.seconds / self.amount * 1000 * self.flash_display_rate) + 5:
                 self.pre_refresh_numbers()
             elif self.t >= self.seconds / self.amount * 1000:
                 self.refresh_numbers()
