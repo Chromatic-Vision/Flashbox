@@ -532,6 +532,7 @@ class Flashbox:
         return result
 
     def get_max_carries(self, digits):
+
         if digits == 0:
             return "??????????????"
         elif digits == 1:
@@ -544,10 +545,8 @@ class Flashbox:
             return 2
         elif digits == 5:
             return 3
-        elif digits == 5:
-            return 3
         elif digits == 6:
-            return 4
+            return 3
         elif digits == 7:
             return 4
         elif digits == 8:
@@ -581,8 +580,6 @@ class Flashbox:
         self.write_latest(self.last_displayed_number, self.displayed_amount == self.amount - 1)
 
         self.total_sum += self.last_displayed_number
-
-        logger.log(f"total: {self.total_sum}, last: {self.last_displayed_number}")
 
         self.displayed_amount += 1
 
@@ -618,7 +615,7 @@ class Flashbox:
                 logger.warn(f"Upper value of the vertical bead @ {i} is not 0 or 1?????????")
 
             # draw lower beads
-            ay = self.size[1] - 110
+            ay = self.size[1] - 108
 
             for j in range(5):
 
