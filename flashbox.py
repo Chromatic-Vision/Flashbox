@@ -1,6 +1,6 @@
 """
 
-Flashbox v0.6 by Chromatic Vision. For more, visit https://chromatic-vision.github.io
+Flashbox v0.7 by Chromatic Vision. For more, visit https://chromatic-vision.github.io/flashbox
 
 """
 
@@ -19,11 +19,7 @@ from pathlib import Path
 import abacus
 import logger
 
-VERSION = "v0.6"
-
-def play_sound(sound):
-    pygame.mixer.music.stop()
-    pygame.mixer.Sound.play(sound)
+VERSION = "v0.7"
 
 def smash():
     pass
@@ -47,8 +43,8 @@ class Flashbox:
         ]
 
         self.digits = 1
-        self.amount = 4
-        self.seconds = 2.5
+        self.amount = 2
+        self.seconds = 4
 
         self.flash_display_rate = 0.55
 
@@ -78,12 +74,10 @@ class Flashbox:
 
         self.reset_latest()
 
-
-
     def create_shortcut(self):
 
         original_exec_file_name = sys.argv[0]
-        
+
         logger.log(f"Creating desktop shortcut that links to {original_exec_file_name}")
 
         if platform.system() == "Windows":
@@ -119,7 +113,8 @@ class Flashbox:
 
                 link.symlink_to(target)
             except Exception as e:
-                logger.warn(f'Could not create shortcut file on your desktop. Probably unsupported os "{platform.system()}"?')
+                logger.warn(
+                    f'Could not create shortcut file on your desktop. Probably unsupported os "{platform.system()}"?')
                 logger.error(repr(e))
 
     def save_config(self, filename):
@@ -216,8 +211,11 @@ class Flashbox:
                 else:
                     self.clicked = False
 
-                pygame.draw.rect(parent.screen, self.fill_colors['normal'] if c == 0 else (self.fill_colors['hover'] if c == 1 else self.fill_colors['pressed']), self.button_rect, 0 if self.button_rect.collidepoint(mouse) else 2)
-                parent.render_normal_text(str(self.button_text), self.x + self.x_offset + 17, self.y + self.y_offset + 7, (255, 255, 255))
+                pygame.draw.rect(parent.screen, self.fill_colors['normal'] if c == 0 else (
+                    self.fill_colors['hover'] if c == 1 else self.fill_colors['pressed']), self.button_rect,
+                                 0 if self.button_rect.collidepoint(mouse) else 2)
+                parent.render_normal_text(str(self.button_text), self.x + self.x_offset + 17,
+                                          self.y + self.y_offset + 7, (255, 255, 255))
 
         return Button(x, y, width, height, render_phase, button_text, x_offset, y_offset)
 
@@ -237,6 +235,10 @@ class Flashbox:
                 if self.t % 80 == 0:
                     self.seconds -= 0.01
 
+            if pygame.key.get_pressed()[pygame.K_SLASH]:
+                if self.t % 80 == 0:
+                    self.seconds += 0.01
+
         if self.phase == 2:  # reset and start countdown
 
             self.t = 0
@@ -249,12 +251,14 @@ class Flashbox:
             self.correct = -1
             self.abacus.reset()
             self.reset_latest()
+            pygame.mouse.set_visible(False)
+            move_mouse() # otherwise mouse doesn't update and will remain on the screen
 
             self.phase = 3
 
         if self.phase == 3:
 
-            if self.cs == 2 and self.t == 231: # TODO: ???
+            if self.cs == 2 and self.t == 231:  # TODO: ???
                 play_sound(pygame.mixer.Sound("sounds/start.wav"))
 
             if self.cs == 1 and self.t == 1:
@@ -294,7 +298,6 @@ class Flashbox:
             if self.t >= 5000:
                 self.phase = 0
                 self.t = 0
-
 
     def update(self):
 
@@ -390,18 +393,24 @@ class Flashbox:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         if self.correct == -1:
                             self.phase = 0
+                            logger.warn("No answer given????")
                         elif self.correct == 0:
                             self.phase = 7
                             self.t = 0
-                            return
                         elif self.correct == 1:
                             self.phase = 0
                             self.t = 0
+
+                            pygame.mouse.set_visible(True)
+                            move_mouse()
+
 
                 elif self.phase == 7:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         self.phase = 0
                         self.t = 0
+                        pygame.mouse.set_visible(True)
+                        move_mouse()
 
             if event.type == pygame.TEXTINPUT:
                 if self.phase == 5:
@@ -465,8 +474,9 @@ class Flashbox:
             self.render_normal_text("decrease / increase", self.size[0] / 3 + 320, 65, (255, 255, 255))
             self.render_normal_text("← / →", self.size[0] / 3 + 425, 100, (255, 255, 255))
             self.render_normal_text("↓ / ↑", self.size[0] / 3 + 425, 135, (255, 255, 255))
-            self.render_normal_text("M", self.size[0] / 3 + 385, 170, (255, 255, 255))
+            self.render_normal_text("M", self.size[0] / 3 + 380, 170, (255, 255, 255))
             self.render_normal_text(", / .", self.size[0] / 3 + 425, 170, (255, 255, 255))
+            self.render_normal_text("/", self.size[0] / 3 + 525, 170, (255, 255, 255))
 
             self.render_normal_text("Press esc to exit, space/enter to start.", 5, self.size[1] - 40, (255, 255, 255))
 
@@ -490,7 +500,12 @@ class Flashbox:
                     self.render_number(f"{self.cs}", (255, 255, 255))
             else:
                 if self.cs >= 4:
-                    screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", True, (255, 255, 255)),(self.get_middle_x_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)), self.get_middle_y_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60))))
+                    screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render(
+                        f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", True, (255, 255, 255)), (
+                                self.get_middle_x_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s",
+                                                       pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)),
+                                self.get_middle_y_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s",
+                                                       pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60))))
 
         elif self.phase == 4:
             if self.last_displayed_number > -1 and self.t <= self.seconds / self.amount * 1000 * self.flash_display_rate:
@@ -531,7 +546,7 @@ class Flashbox:
         elif self.phase == 7:
             self.render_number(f"{self.total_sum}", (255, 255, 0))
 
-    def count_carries(self, n1, n2): # shhh
+    def count_carries(self, n1, n2):  # shhh
 
         n1, n2 = str(n1), str(n2)
         carry, answer = 0, 0
@@ -608,14 +623,12 @@ class Flashbox:
                     break
 
         return res
-    
+
     def pre_refresh_numbers(self):
         self.last_displayed_number = self.get_next_number(self.digits)
-        self.write_latest(self.last_displayed_number, self.refreshed_amount == self.amount - 1)
-
         self.total_sum += self.last_displayed_number
 
-    def refresh_numbers(self): # TODO: remove the lag
+    def refresh_numbers(self):
 
         self.t = 0
 
@@ -624,11 +637,13 @@ class Flashbox:
 
         self.refreshed_amount += 1
 
-    def write_latest(self, number, finished):
+        self.write_latest(self.last_displayed_number)
+
+    def write_latest(self, number):
         with open("latest.acf", "a") as f:
             f.write(str(number) + "\n")
 
-            if finished:
+            if self.refreshed_amount >= self.amount:
                 f.write("==========\n")
                 f.write(str(self.total_sum))
 
@@ -637,7 +652,7 @@ class Flashbox:
             f.truncate()
 
     def draw_abacus(self):
-        
+
         ax = 5
 
         pygame.draw.line(self.screen, (100, 100, 100), (5, self.size[1] - 100), (self.abacus.range * 20, self.size[1] - 100), 2)
@@ -695,7 +710,9 @@ class Flashbox:
         self.screen.blit(self.normal_font.render(text, True, color), (x, y))
 
     def render_number(self, text: str, color, x=-32768, y=-32768):
-        self.screen.blit(self.number_font.render(text, True, color), (x if x > -32768 else self.get_middle_x_font(text, self.number_font), y if y > -32768 else self.get_middle_y_font(text, self.number_font)))
+        self.screen.blit(self.number_font.render(text, True, color), (
+        x if x > -32768 else self.get_middle_x_font(text, self.number_font),
+        y if y > -32768 else self.get_middle_y_font(text, self.number_font)))
 
 
 def check_for_same_digit(num):
@@ -713,3 +730,10 @@ def check_for_same_digit(num):
         return True
 
     return False
+
+def play_sound(sound):
+    pygame.mixer.music.stop()
+    pygame.mixer.Sound.play(sound)
+
+def move_mouse():
+    pygame.mouse.set_pos((pygame.mouse.get_pos()[0] - 0.00069420, pygame.mouse.get_pos()[1]))
