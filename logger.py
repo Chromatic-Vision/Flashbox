@@ -73,21 +73,30 @@ def _get_log(message, color, type) -> str:
     return out
 
 
-def log(message):
+def log(*message):
+
+    message = ' '.join([str(msg) for msg in message])
+
     print(_get_log(message, True, 0))
 
     with open('latest.log', 'a', encoding="UTF-8") as f:
         f.write(_get_log(message, False, 0))
 
 
-def warn(message):
+def warn(*message):
+
+    message = ' '.join([str(msg) for msg in message])
+
     print(_get_log(message, True, 1))
 
     with open('latest.log', 'a', encoding="UTF-8") as f:
         f.write(_get_log(message, False, 1))
 
 
-def error(message):
+def error(*message):
+
+    message = ' '.join([str(msg) for msg in message])
+
     print(_get_log(message, True, 2))
 
     with open('latest.log', 'a', encoding="UTF-8") as f:

@@ -67,7 +67,7 @@ class Flashbox:
         self.number_font_size = 160
 
         self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
-        self.normal_font = pygame.font.Font("fonts/noto-sans-mono-light.ttf", 25)
+        self.normal_font = pygame.font.Font("fonts/generic.ttf", 25)
 
         self.tournament_mode = False
         self.render_abacus = False
@@ -113,8 +113,7 @@ class Flashbox:
 
                 link.symlink_to(target)
             except Exception as e:
-                logger.warn(
-                    f'Could not create shortcut file on your desktop. Probably unsupported os "{platform.system()}"?')
+                logger.warn(f'Could not create shortcut file on your desktop. Probably unsupported os "{platform.system()}"?')
                 logger.error(repr(e))
 
     def save_config(self, filename):
@@ -147,16 +146,31 @@ class Flashbox:
                 logger.error(f"Syntax error (JSONDecodeError) occurred while trying to load json '{filename}':")
                 file.seek(0)
                 logger.error(str(e) + ": '" + str(file.read()) + "'")
+
+                logger.warn(f"Removing {filename} from the directory...")
+
+                file.close()
+                os.remove(filename)
                 return
 
-            self.digits = data["digits"]
-            self.amount = data["amount"]
-            self.seconds = data["total_seconds"]
-            self.countdown_seconds = data["countdown_seconds"]
-            self.render_countdown = data["render_countdown"]
-            self.number_font_size = data["number_font_size"]
-            self.tournament_mode = data["tournament_mode"]
-            self.render_abacus = data["render_abacus"]
+            try:
+
+                self.digits = data["digits"]
+                self.amount = data["amount"]
+                self.seconds = data["total_seconds"]
+                self.countdown_seconds = data["countdown_seconds"]
+                self.render_countdown = data["render_countdown"]
+                self.number_font_size = data["number_font_size"]
+                self.tournament_mode = data["tournament_mode"]
+                self.render_abacus = data["render_abacus"]
+            except KeyError as e:
+
+                logger.error(f"Malformed config file '{filename}' found! Probably outdated version?")
+                logger.error("Malformed key(s):", e)
+                logger.warn(f"Removing {filename} from the directory...")
+
+                file.close()
+                os.remove(filename)
 
             self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
 
@@ -258,7 +272,7 @@ class Flashbox:
 
         if self.phase == 3:
 
-            if self.cs == 2 and self.t == 231:  # TODO: ???
+            if self.cs == 2 and self.t == 232:  # TODO: ???
                 play_sound(pygame.mixer.Sound("sounds/start.wav"))
 
             if self.cs == 1 and self.t == 1:
@@ -340,10 +354,10 @@ class Flashbox:
                         self.countdown_seconds += 1
                     if event.key == pygame.K_DOWN and self.number_font_size - 1 > 0:
                         self.number_font_size -= 1
-                        self.number_font = pygame.font.Font("fonts/abacus.ttf", 130)
+                        self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
                     if event.key == pygame.K_UP:
                         self.number_font_size += 1
-                        self.number_font = pygame.font.Font("fonts/abacus.ttf", 130)
+                        self.number_font = pygame.font.Font("fonts/abacus.ttf", self.number_font_size)
                     if event.key == pygame.K_COMMA and self.render_countdown:
                         self.render_countdown = False
                     if event.key == pygame.K_PERIOD and not self.render_countdown:
@@ -391,13 +405,11 @@ class Flashbox:
 
                 elif self.phase == 6:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                        if self.correct == -1:
-                            self.phase = 0
-                            logger.warn("No answer given????")
-                        elif self.correct == 0:
+
+                        if self.correct == 0:
                             self.phase = 7
                             self.t = 0
-                        elif self.correct == 1:
+                        elif self.correct == 1 or self.correct == -1:
                             self.phase = 0
                             self.t = 0
 
@@ -500,12 +512,12 @@ class Flashbox:
                     self.render_number(f"{self.cs}", (255, 255, 255))
             else:
                 if self.cs >= 4:
-                    screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render(
+                    screen.blit(pygame.font.Font("fonts/generic.ttf", 60).render(
                         f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s", True, (255, 255, 255)), (
                                 self.get_middle_x_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s",
-                                                       pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60)),
+                                                       pygame.font.Font("fonts/generic.ttf", 60)),
                                 self.get_middle_y_font(f"{self.digits}d {self.amount}x {round(self.seconds, 3)}s",
-                                                       pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60))))
+                                                       pygame.font.Font("fonts/generic.ttf", 60))))
 
         elif self.phase == 4:
             if self.last_displayed_number > -1 and self.t <= self.seconds / self.amount * 1000 * self.flash_display_rate:
@@ -516,17 +528,16 @@ class Flashbox:
 
         elif self.phase == 5:
 
-            if self.tournament_mode:
-                self.render_normal_text("Fill in your answers...", 5, 5, (255, 255, 255))
-            else:
-                self.render_normal_text("Write your answer down...", 5, 5, (255, 255, 255))
+            self.render_normal_text("Fill in your answers...", 5, 5, (255, 255, 255))
+
+            if not self.tournament_mode:
                 self.render_number(f"{self.input}", (0, 0, 255))
 
         elif self.phase == 6:
 
             if self.tournament_mode:
 
-                screen.blit(pygame.font.Font("fonts/noto-sans-mono-light.ttf", 60).render("Answer:", True, (255, 255, 255)), (200, self.size[1] / 2 - 200))
+                screen.blit(pygame.font.Font("fonts/generic.ttf", 60).render("Answer:", True, (255, 255, 255)), (200, self.size[1] / 2 - 200))
                 self.render_number(f"{self.total_sum}", (255, 255, 0), self.size[0] - 225 - self.number_font.size(f"{self.total_sum}")[0])
 
                 # ly = 85
@@ -641,11 +652,11 @@ class Flashbox:
 
     def write_latest(self, number):
         with open("latest.acf", "a") as f:
-            f.write(str(number) + "\n")
+            f.write((10 - len(str(number))) * " " + str(number) + "\n")
 
             if self.refreshed_amount >= self.amount:
                 f.write("==========\n")
-                f.write(str(self.total_sum))
+                f.write((10 - len(str(self.total_sum))) * " " + str(self.total_sum))
 
     def reset_latest(self):
         with open("latest.acf", "w") as f:
